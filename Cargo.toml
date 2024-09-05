@@ -1,0 +1,9 @@
+[package]
+name = "rc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shut_up = "0.1.1"
+
+# cargo test -- --nocapture 测试并打印
