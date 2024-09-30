@@ -6,4 +6,7 @@ edition = "2021"
 [dependencies]
 shut_up = "0.1.1"
 
+[profile.dev]
+debug = true
+
 # cargo test -- --nocapture 测试并打印
