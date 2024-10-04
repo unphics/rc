@@ -15,7 +15,6 @@ dependencies = [
 name = "proc_macro_rc"
 version = "0.1.0"
 dependencies = [
- "proc-macro2",
  "quote",
  "syn",
 ]
@@ -30,24 +29,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "rc"
-version = "0.1.0"
-dependencies = [
- "proc_macro_rc",
- "shut_up",
-]
-
-[[package]]
-name = "shut_up"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c26df9e18d8785fefe272a10027f894a6ad97670d99fd452a8c93f98047517a"
-
-[[package]]
 name = "syn"
-version = "1.0.109"
+version = "2.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
+checksum = "89132cd0bf050864e1d38dc3bbc07a0eb8e7530af26344d3d2bbbef83499f590"
 dependencies = [
  "proc-macro2",
  "quote",

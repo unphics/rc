@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 shut_up = "0.1.1"
+proc_macro_rc = {path = "./proc_macro_rc"}
 
 [profile.dev]
 debug = true

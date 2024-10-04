@@ -13,6 +13,7 @@ pub fn free<T>(ptr_deap: *mut T) {
     unsafe {
         std::ptr::drop_in_place(ptr_deap);
         std::alloc::dealloc(ptr_deap as *mut u8, layout);
+        // ptr_deap = std::ptr::null_mut();
     }
 }
 
