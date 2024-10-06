@@ -2,10 +2,15 @@
 name = "rc"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"  # 告诉 Cargo 使用 `build.rs`
+
+[build-dependencies]
+bindgen = "0.64"   # 绑定生成工具的依赖
 
 [dependencies]
 shut_up = "0.1.1"
 proc_macro_rc = {path = "./proc_macro_rc"}
+libloading = "0.7" # 动态加载库的依赖
 
 [profile.dev]
 debug = true
