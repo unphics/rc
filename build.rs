@@ -10,14 +10,18 @@ static SDL2_INCLUDE_PATH: &str = "D:/Scoop/apps/sdl2/current/include/SDL2";
 static SDL2_LIB_PATH: &str = "D:/Scoop/apps/sdl2/current/lib";
 static VULKAN_EXTERN_PATH: &str = "D:/Lib/VulkanSDK/1.3.290.0/Include/vulkan";
 static VULKAN_INCLUDE_PATH: &str = "D:/Lib/VulkanSDK/1.3.290.0/Include/";
-static VULKAN_LIB_PATH: &str = "d:/Lib/VulkanSDK/1.3.290.0/Lib";
+static VULKAN_LIB_PATH: &str = "D:/Lib/VulkanSDK/1.3.290.0/Lib";
+static IMGUI_INCLUDE_PATH: &str = "./imgui/include";
+static IMGUI_LIB_PATH: &str = "./imgui/build/windows/x64/release";
 
 fn main() {
     find_libclang();
     gen_sdl2_binding();
-    link_sdl2();
+    link_sdl2_lib();
     gen_vulkan_bindings();
-    link_vulkan();
+    link_vulkan_lib();
+    gen_imgui_bindings();
+    link_imgui_lib();
 }
 
 /**
@@ -46,7 +50,7 @@ fn gen_sdl2_binding() {
         .expect("Couldn't write bindings!");
 }
 
-fn link_sdl2() {
+fn link_sdl2_lib() {
     println!("cargo:rustc-link-search=native={}", SDL2_LIB_PATH);
     println!("cargo:rustc-link-lib=dylib=SDL2");
 }
@@ -68,9 +72,29 @@ fn gen_vulkan_bindings() {
     println!("cargo:rerun-if-changed=path/to/vulkan/include/vulkan/vulkan.h");
 }
 
-fn link_vulkan() {
+fn link_vulkan_lib() {
     // println!("cargo:rustc-link-lib=vulkan");
     // // 设置链接库，链接 Vulkan 动态库
     println!("cargo:rustc-link-search=native={}", VULKAN_LIB_PATH);
     println!("cargo:rustc-link-lib=static=vulkan-1");
+}
+
+fn gen_imgui_bindings() {
+    println!("cargo:rerun-if-changed={}", IMGUI_INCLUDE_PATH);
+    let bindings = bindgen::Builder::default()
+        .header(format!("{}/imgui.h", IMGUI_INCLUDE_PATH))
+        .clang_arg("-x")      // 告诉 clang 使用 C++ 语言
+        .clang_arg("c++")     // 明确 C++ 语言
+        .clang_arg("-std=c++17")  // 设置 C++ 标准为 C++11
+        .generate()
+        .expect("Unable to generate bindings");
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    bindings
+        .write_to_file(out_path.join("imgui_bindings.rs"))
+        .expect("Couldn't write bindings!");
+}
+
+fn link_imgui_lib() {
+    println!("cargo:rustc-link-search=native={}", IMGUI_LIB_PATH);
+    println!("cargo:rustc-link-lib=static=imgui");
 }
