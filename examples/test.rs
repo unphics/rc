@@ -6,6 +6,11 @@ use std::mem::MaybeUninit;
 
 static mut g_Instance: rc::vk::vk_bindings::VkInstance = std::ptr::null_mut();
 static mut g_PhysicalDevice: rc::vk::vk_bindings::VkPhysicalDevice = std::ptr::null_mut();
+static mut g_QueueFamily: u32 = u32::MAX;
+static mut g_Allocator: *mut VkAllocationCallbacks = std::ptr::null_mut();
+static mut g_Device: rc::vk::vk_bindings::VkDevice = std::ptr::null_mut();
+static mut g_Queue: rc::vk::vk_bindings::VkQueue = std::ptr::null_mut();
+
 
 fn main() {
     println!("===== test begin =====");
@@ -36,6 +41,7 @@ fn main() {
             println!("failed to get extension count: {:?}", rc::sdl2::get_err());
         }
         let mut extension_names: Vec<*const ::std::os::raw::c_char> = Vec::with_capacity(extension_count as usize);
+        unsafe{extension_names.set_len(extension_count as usize);}
         let result = SDL_Vulkan_GetInstanceExtensions(window, &mut extension_count, extension_names.as_mut_ptr());
         if result != SDL_bool_SDL_TRUE {
             println!("failed to get vulkan instance extension_names: {:?}", rc::sdl2::get_err());
@@ -68,6 +74,7 @@ fn setup_vulkan(mut inst_extension_names: Vec<*const ::std::os::raw::c_char>) {
         let mut properties_count: u32 = 0;
         unsafe{vkEnumerateInstanceExtensionProperties(std::ptr::null_mut(), &mut properties_count, std::ptr::null_mut());}            
         let mut properties: Vec<VkExtensionProperties> = Vec::with_capacity(properties_count as usize);
+        // unsafe{properties.set_len(properties_count as usize );}
         err = unsafe{vkEnumerateInstanceExtensionProperties(std::ptr::null_mut(), &mut properties_count, properties.as_mut_ptr())};
         check_vk_result(err);
         
@@ -108,12 +115,56 @@ fn setup_vulkan(mut inst_extension_names: Vec<*const ::std::os::raw::c_char>) {
         //         eprintln!("Failed to get vkDestroyDebugReportCallbackEXT function pointer");
         //     }
         // }
-
-        unsafe {g_PhysicalDevice = set_up_vulkan_select_physics_deivce();} // Select Physical Device (GPU)
-        
-        // Select graphics queue family
+    }
+    
+    unsafe {g_PhysicalDevice = set_up_vulkan_select_physics_deivce();} // Select Physical Device (GPU)
+    assert!(unsafe{g_PhysicalDevice} != std::ptr::null_mut());
+    
+    { // Select graphics queue family
         let mut count:u32 = 0;
         unsafe {vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &mut count, std::ptr::null_mut())};
+        
+        let mut queues: Vec<VkQueueFamilyProperties> = Vec::with_capacity(count as usize);
+        unsafe{queues.set_len(count as usize);}
+        unsafe {vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &mut count, queues.as_mut_ptr())};
+
+        for i in 0..count-1 {
+            if queues[i as usize].queueFlags & (VkQueueFlagBits_VK_QUEUE_GRAPHICS_BIT as u32) != 0{
+                unsafe{g_QueueFamily = i};
+                break;
+            }
+        }
+        assert!(unsafe{g_QueueFamily} != u32::MAX);
+    }
+
+    { // create logical device
+        let mut device_extensions: Vec<*const c_char> = Vec::new();
+        device_extensions.push(VK_KHR_SWAPCHAIN_EXTENSION_NAME.as_ptr() as *const c_char);
+        println!("222");
+        // enumerate physical device extension
+        let mut properties_count: u32 = 0;
+        unsafe{vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, std::ptr::null_mut(), &mut properties_count, std::ptr::null_mut())};
+        let mut properties: Vec<VkExtensionProperties> = Vec::with_capacity(properties_count as usize);
+        unsafe{properties.set_len(properties_count as usize );}
+        unsafe{vkEnumerateDeviceExtensionProperties(g_PhysicalDevice, std::ptr::null_mut(), &mut properties_count, properties.as_mut_ptr())};
+        println!("111");
+        let mut queue_priority: [f32; 1] = [1.0];
+        let mut queue_info: [VkDeviceQueueCreateInfo; 1] = unsafe {MaybeUninit::zeroed().assume_init()};
+        queue_info[0].sType = VkStructureType_VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_info[0].queueFamilyIndex = unsafe{g_QueueFamily};
+        queue_info[0].queueCount = 1;
+        queue_info[0].pQueuePriorities = queue_priority.as_mut_ptr(); 
+        let mut create_info: VkDeviceCreateInfo = unsafe {MaybeUninit::zeroed().assume_init()};
+        create_info.sType = VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        create_info.queueCreateInfoCount = queue_info.len() as u32;
+        create_info.enabledExtensionCount = device_extensions.len() as u32;
+        create_info.ppEnabledExtensionNames = device_extensions.as_mut_ptr();
+        println!("333");
+        err = unsafe{vkCreateDevice(g_PhysicalDevice, &mut create_info, g_Allocator, &mut g_Device)};
+        todo!();
+        println!("444");
+        check_vk_result(err);
+        unsafe{vkGetDeviceQueue(g_Device, g_QueueFamily, 0, &mut g_Queue)}
     }
 }
 
@@ -122,9 +173,12 @@ fn set_up_vulkan_select_physics_deivce() ->VkPhysicalDevice {
     let mut err: VkResult;
     err = unsafe{vkEnumeratePhysicalDevices(g_Instance, &mut gpu_count, std::ptr::null_mut())};
     check_vk_result(err);
+    assert!(gpu_count > 0);
     
     let mut gpus: Vec<VkPhysicalDevice> = Vec::with_capacity(gpu_count as usize);
+    unsafe {gpus.set_len(gpu_count as usize);}
     err = unsafe{vkEnumeratePhysicalDevices(g_Instance, &mut gpu_count, gpus.as_mut_ptr())};
+    println!("发现gpu{}个, gpu数组长度{}, 查询结果{}", gpu_count, gpus.len(), err);
     check_vk_result(err);
 
     for device in &gpus {
