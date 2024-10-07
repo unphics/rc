@@ -1,6 +1,6 @@
 mod memory;
-mod sdl2;
-mod vk;
+pub mod sdl2;
+pub mod vk;
 mod imgui;
 
 pub use memory::alloc::malloc;

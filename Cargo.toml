@@ -17,7 +17,7 @@ debug = true
 
 # cargo test -- --nocapture 测试并打印
 
-#定义额外元数据
+#定义额外元数据,用于交叉编译
 [package.metadata.cargo-xbuild]
 rustc-link-search = [
     "D:/Lib/VulkanSDK/1.3.290.0/Lib",

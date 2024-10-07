@@ -1,4 +1,4 @@
-mod vk_bindings {
+pub mod vk_bindings {
     include!(concat!(env!("OUT_DIR"), "/vulkan_bindings.rs"));
 }
 pub use vk_bindings::*;
