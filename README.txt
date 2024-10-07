@@ -1,0 +1,3 @@
+需要先准备CMake,XMake,VulkanSDK,llvm
+建议直接用Scoop安装上面的依赖
+按照config模板配置本地库目录

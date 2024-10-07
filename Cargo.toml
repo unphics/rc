@@ -5,7 +5,9 @@ edition = "2021"
 build = "build.rs"  # 告诉 Cargo 使用 `build.rs`
 
 [build-dependencies]
-bindgen = "0.64"   # 绑定生成工具的依赖
+bindgen = "0.70"   # 绑定生成工具的依赖
+serde = {version = "1.0", features = ["derive"]}
+serde_json = "1.0"
 
 [dependencies]
 shut_up = "0.1.1"

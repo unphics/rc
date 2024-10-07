@@ -92,18 +92,14 @@ fn setup_vulkan(mut inst_extension_names: Vec<*const ::std::os::raw::c_char>) {
         err = unsafe{vkCreateInstance(& create_info, std::ptr::null(), &mut g_Instance)};
         check_vk_result(err);
 
-        println!("111");
         let pfn = unsafe{vkGetInstanceProcAddr(g_Instance, CString::new("vkDestroyDebugReportCallbackEXT").expect("failed to new cstirng").as_ptr()).unwrap()} as *mut std::os::raw::c_void; 
-        println!("222");
         unsafe {
             let destroy_debug_report_callback: PFN_vkDestroyDebugReportCallbackEXT = if !pfn.is_null() {
-                println!("333");
                 Some(std::mem::transmute::<_, unsafe extern "C" fn(rc::vk::vk_bindings::VkInstance, VkDebugReportCallbackEXT, *const VkAllocationCallbacks)>(pfn))
             } else {
                 None
             };
             // 使用这个函数指针
-            println!("444");
             if let Some(destroy_fn) = destroy_debug_report_callback {
                 // 使用 destroy_fn
                 // destroy_fn(instance, callback, allocator);  // 确保您已定义这些参数
