@@ -28,7 +28,7 @@ fn main() {
         ppEnabledExtensionNames: ptr::null(),
     };
 
-    let mut instance: VkInstance = ptr::null_mut();
+    let mut instance: rc::vk::vk_bindings::VkInstance = ptr::null_mut();
     let result = unsafe {
         vkCreateInstance(&instance_create_info, ptr::null(), &mut instance)
     };

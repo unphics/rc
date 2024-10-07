@@ -1,3 +1,5 @@
+
+
 pub fn malloc<T>(obj: T) -> *mut T where T: Sized {
     let layout = std::alloc::Layout::new::<T>();
     let mut ptr_deap : *mut T = std::ptr::null_mut();

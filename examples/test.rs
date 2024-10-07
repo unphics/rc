@@ -2,8 +2,10 @@ use rc::*;
 use std::ffi::CString;
 use std::ffi::CStr;
 use std::os::raw::c_char;
+use std::mem::MaybeUninit;
 
 static mut g_Instance: rc::vk::vk_bindings::VkInstance = std::ptr::null_mut();
+static mut g_PhysicalDevice: rc::vk::vk_bindings::VkPhysicalDevice = std::ptr::null_mut();
 
 fn main() {
     println!("===== test begin =====");
@@ -78,36 +80,65 @@ fn setup_vulkan(mut inst_extension_names: Vec<*const ::std::os::raw::c_char>) {
             create_info.flags |= VkInstanceCreateFlagBits_VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR as u32;
         } 
 
-        // enabling validation layers
-        let layers = [CString::new("VK_LAYER_KHRONOS_validation").unwrap(),];
-        let layer_ptrs: Vec<*const c_char> = layers.iter().map(|layers| layers.as_ptr()).collect();
-        let layer_ptrs_ptr: *const *const c_char = layer_ptrs.as_ptr();
-        create_info.enabledLayerCount = 1;
-        create_info.ppEnabledLayerNames = layer_ptrs_ptr;
-        inst_extension_names.push(CString::new("VK_EXT_debug_report").unwrap().as_ptr());
+        // enabling validation layers [#ifdef APP_USE_VULKAN_DEBUG_REPORT] 这个扩展有问题先注释了
+        // let layers = [CString::new("VK_LAYER_KHRONOS_validation").unwrap(),];
+        // let layer_ptrs: Vec<*const c_char> = layers.iter().map(|layers| layers.as_ptr()).collect();
+        // let layer_ptrs_ptr: *const *const c_char = layer_ptrs.as_ptr();
+        // create_info.enabledLayerCount = 1;
+        // create_info.ppEnabledLayerNames = layer_ptrs_ptr;
+        // inst_extension_names.push(CString::new("VK_EXT_debug_report").unwrap().as_ptr());
 
         // create vulkan instance
         create_info.enabledExtensionCount = inst_extension_names.len() as u32;
         create_info.ppEnabledExtensionNames = inst_extension_names.as_mut_ptr();
-        err = unsafe{vkCreateInstance(& create_info, std::ptr::null(), &mut g_Instance)};
+        err = unsafe{vkCreateInstance(&create_info, std::ptr::null(), &mut g_Instance)};
         check_vk_result(err);
 
-        let pfn = unsafe{vkGetInstanceProcAddr(g_Instance, CString::new("vkDestroyDebugReportCallbackEXT").expect("failed to new cstirng").as_ptr()).unwrap()} as *mut std::os::raw::c_void; 
-        unsafe {
-            let destroy_debug_report_callback: PFN_vkDestroyDebugReportCallbackEXT = if !pfn.is_null() {
-                Some(std::mem::transmute::<_, unsafe extern "C" fn(rc::vk::vk_bindings::VkInstance, VkDebugReportCallbackEXT, *const VkAllocationCallbacks)>(pfn))
-            } else {
-                None
-            };
-            // 使用这个函数指针
-            if let Some(destroy_fn) = destroy_debug_report_callback {
-                // 使用 destroy_fn
-                // destroy_fn(instance, callback, allocator);  // 确保您已定义这些参数
-            } else {
-                eprintln!("Failed to get vkDestroyDebugReportCallbackEXT function pointer");
-            }
+        // [#ifdef APP_USE_VULKAN_DEBUG_REPORT]
+        // let pfn = unsafe{vkGetInstanceProcAddr(g_Instance, CString::new("vkDestroyDebugReportCallbackEXT").expect("failed to new cstirng").as_ptr()).unwrap()} as *mut std::os::raw::c_void; 
+        // unsafe {
+        //     let destroy_debug_report_callback: PFN_vkDestroyDebugReportCallbackEXT = if !pfn.is_null() {
+        //         Some(std::mem::transmute::<_, unsafe extern "C" fn(rc::vk::vk_bindings::VkInstance, VkDebugReportCallbackEXT, *const VkAllocationCallbacks)>(pfn))
+        //     } else {
+        //         None
+        //     };
+        //     if let Some(destroy_fn) = destroy_debug_report_callback {
+        //         // destroy_fn(instance, callback, allocator);  // 确保您已定义这些参数
+        //     } else {
+        //         eprintln!("Failed to get vkDestroyDebugReportCallbackEXT function pointer");
+        //     }
+        // }
+
+        unsafe {g_PhysicalDevice = set_up_vulkan_select_physics_deivce();} // Select Physical Device (GPU)
+        
+        // Select graphics queue family
+        let mut count:u32 = 0;
+        unsafe {vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &mut count, std::ptr::null_mut())};
+    }
+}
+
+fn set_up_vulkan_select_physics_deivce() ->VkPhysicalDevice {
+    let mut gpu_count:u32 = 0;
+    let mut err: VkResult;
+    err = unsafe{vkEnumeratePhysicalDevices(g_Instance, &mut gpu_count, std::ptr::null_mut())};
+    check_vk_result(err);
+    
+    let mut gpus: Vec<VkPhysicalDevice> = Vec::with_capacity(gpu_count as usize);
+    err = unsafe{vkEnumeratePhysicalDevices(g_Instance, &mut gpu_count, gpus.as_mut_ptr())};
+    check_vk_result(err);
+
+    for device in &gpus {
+        let mut properties: VkPhysicalDeviceProperties = unsafe {MaybeUninit::zeroed().assume_init()};
+        unsafe {vkGetPhysicalDeviceProperties(*device, &mut properties)};
+            
+        if properties.deviceType == VkPhysicalDeviceType_VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU {
+            return *device
         }
     }
+    if gpus.len() > 0 {
+        return gpus[0];
+    }
+    return std::ptr::null_mut();
 }
 
 fn is_extension_available(properties: &Vec<VkExtensionProperties>, extension: &CStr) -> bool {
