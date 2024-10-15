@@ -2,6 +2,8 @@ use rc::*;
 use std::ffi::CString;
 use image::{self, ImageBuffer, Rgb};
 
+const WindowDuration: u64 = 20;
+
 fn main() {
     unsafe { // 初始化 SDL2
         if SDL_Init(SDL_INIT_VIDEO) != 0 {
@@ -18,8 +20,8 @@ fn main() {
             title.as_ptr(),
             400, // SDL_WINDOWPOS_CENTERED as i32,
             50, // SDL_WINDOWPOS_CENTERED as i32,
-            800,
-            600,
+            1600,
+            1200,
             SDL_WindowFlags_SDL_WINDOW_SHOWN as u32
         );
         if window.is_null() {
@@ -31,8 +33,8 @@ fn main() {
         println!("SDL window create succeed");
     }
     {
-        let width = 200;
-        let height = 150;
+        let width = 1600;
+        let height = 1200;
         let mut img_buf: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(width, height);
         draw(&mut img_buf);
         img_buf.save("resource/new.bmp").unwrap();
@@ -85,7 +87,7 @@ fn main() {
         SDL_RenderCopy(renderer, texture, std::ptr::null(), std::ptr::null()); // 将纹理复制到渲染器中
         SDL_RenderPresent(renderer); // 呈现渲染器内容
     }
-    std::thread::sleep(std::time::Duration::from_secs(3));
+    std::thread::sleep(std::time::Duration::from_secs(WindowDuration));
     unsafe {
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -109,30 +111,46 @@ fn draw(img: &mut ImgBuf) { // 填充像素
     // line(13,20, 80, 40, img, Rgb([255, 0, 0]));
     // line(20,13, 40, 80, img, Rgb([255, 0, 0]));
     // line(80,40, 13, 20, img, Rgb([255, 0, 0]));
-    line(0,100, 100, 100, img, Rgb([255, 0, 0]));
+    // line(0,100, 100, 100, img, Rgb([255, 0, 0]));
     // line(100,0, 100, 100, img, Rgb([0, 255, 0]));
+
+    let model = rc::model::new("resource/african_head.obj").unwrap();
+    for i in 0..model.nfaces() {
+        let face = model.face(i);
+        for j in 0..2 {
+            let v0 = model.vert(face[j] as usize);
+            let v1 = model.vert(face[(j + 1) % 3] as usize);
+            let x0 = ((v0.x + 1f32) * (800 / 2) as f32) as i64;
+            let y0 = ((v0.y + 1f32) * (800 / 2) as f32) as i64;
+            let x1 = ((v1.x + 1f32) * (800 / 2) as f32) as i64;
+            let y1 = ((v1.y + 1f32) * (800 / 2) as f32) as i64;
+            line(x0, y0, x1, y1, img, Rgb([255, 255, 255]));
+        }
+    }
 }
-fn set_color( x: u32, y: u32, img: &mut ImgBuf,color: Color) {
-    *img.get_pixel_mut(x, y) = color;
+fn set_color(x: i64, y: i64, img: &mut ImgBuf,color: Color) {
+    *img.get_pixel_mut(x as u32, y as u32) = color;
 }
 // 后续优化
-fn line(mut x0: u32, mut y0: u32, mut x1: u32, mut y1:u32, img: &mut ImgBuf, color: Color) {
+fn line(mut x0: i64, mut y0: i64, mut x1: i64, mut y1:i64, img: &mut ImgBuf, color: Color) {
     let mut steep: bool = false;
     if (x0 as f32 - x1 as f32).abs() < (y0 as f32 - y1 as f32).abs() {
-        x0 = x0 + y0; y0 = x0 - y0; x0 = x0 - y0; // todo: rust的swap是哪个?
-        x1 = x1 + y1; y1 = x1 - y1; x1 = x1 - y1;
+        std::mem::swap(&mut x0, &mut y0);
+        std::mem::swap(&mut x1, &mut y1);
         steep = true;
     }
     if x0 > x1 {
-        x0 = x0 + x1; x1 = x0 - x1; x0 = x0 - x1;
-        y0 = y0 + y1; y1 = y0 - y1; y0 = y0 - y1;
+        std::mem::swap(&mut x0, &mut x1);
+        std::mem::swap(&mut y0, &mut y1);
     }
-    for x in x0..x1 {
-        let y: u32 = y0 + (y1 - y0) * ((x - x0) / (x1 - x0));
-        if steep {
-            set_color(y, x, img, color);
-        } else {
-            set_color(x, y, img, color);
+    if x1 != x0 {
+        for x in x0..x1 {
+            let y: i64 = y0 + (y1 - y0) * ((x - x0) / (x1 - x0));
+            if steep {
+                set_color(y, x, img, color);
+            } else {
+                set_color(x, y, img, color);
+            }
         }
     }
 }
