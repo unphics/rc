@@ -115,6 +115,7 @@ fn draw(img: &mut ImgBuf) { // 填充像素
 fn set_color( x: u32, y: u32, img: &mut ImgBuf,color: Color) {
     *img.get_pixel_mut(x, y) = color;
 }
+// 后续优化
 fn line(mut x0: u32, mut y0: u32, mut x1: u32, mut y1:u32, img: &mut ImgBuf, color: Color) {
     let mut steep: bool = false;
     if (x0 as f32 - x1 as f32).abs() < (y0 as f32 - y1 as f32).abs() {
@@ -122,22 +123,15 @@ fn line(mut x0: u32, mut y0: u32, mut x1: u32, mut y1:u32, img: &mut ImgBuf, col
         x1 = x1 + y1; y1 = x1 - y1; x1 = x1 - y1;
         steep = true;
     }
-    if (x0 > x1) {
+    if x0 > x1 {
         x0 = x0 + x1; x1 = x0 - x1; x0 = x0 - x1;
         y0 = y0 + y1; y1 = y0 - y1; y0 = y0 - y1;
     }
-    let dx: u32 = x1 - x0;
-    let dy = y1 - y0;
-
     for x in x0..x1 {
-        let t: f32 = ((x - x0) as f32) / ((x1 - x0) as f32); // x的总变化量分之x的增长量,就是x的增长率
-        let y: u32 = ((y0 as f32) * (1.0 - t) + (y1 as f32) * t) as u32; // 线性插值公式LERP, y = y0*(1-t)+y1*t见ref[1]
+        let y: u32 = y0 + (y1 - y0) * ((x - x0) / (x1 - x0));
         if steep {
-            println!("x = {}, y = {}, t = {}", y, x, t);
             set_color(y, x, img, color);
-            todo!("有一个y = 99") 
         } else {
-            println!("x = {}, y = {}, t = {}", x, y, t);
             set_color(x, y, img, color);
         }
     }
