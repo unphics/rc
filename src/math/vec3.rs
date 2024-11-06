@@ -24,18 +24,18 @@ impl<T> std::ops::Sub for vec3<T> where T: std::ops::Sub<Output = T> {
         return Self{x: self.x - rhs.x, y: self.y - rhs.y, z:self.z - rhs.z};
     }
 }
-impl<T> std::ops::Mul for vec3<T> where T: std::ops::Mul<Output = T> + Copy {
-    type Output = vec3<T>;
-    fn mul(self, rhs: Self) -> Self::Output {
-        return Self{x: self.x * rhs.x, y: self.y * rhs.y, z:self.z * rhs.z};
-    }
-}
-impl<T> std::ops::Div for vec3<T> where T: std::ops::Div<Output = T> + Copy {
-    type Output = vec3<T>;
-    fn div(self, rhs: Self) -> Self::Output {
-        return Self{x: self.x / rhs.x, y: self.y / rhs.y, z:self.z / rhs.z};
-    }
-}
+// impl<T> std::ops::Mul for vec3<T> where T: std::ops::Mul<Output = T> + Copy {
+//     type Output = vec3<T>;
+//     fn mul(self, rhs: Self) -> Self::Output {
+//         return Self{x: self.x * rhs.x, y: self.y * rhs.y, z:self.z * rhs.z};
+//     }
+// }
+// impl<T> std::ops::Div for vec3<T> where T: std::ops::Div<Output = T> + Copy {
+//     type Output = vec3<T>;
+//     fn div(self, rhs: Self) -> Self::Output {
+//         return Self{x: self.x / rhs.x, y: self.y / rhs.y, z:self.z / rhs.z};
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

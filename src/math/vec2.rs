@@ -23,18 +23,18 @@ impl<T> std::ops::Sub for vec2<T> where T: std::ops::Sub<Output = T> {
         return Self{x: self.x - rhs.x, y: self.y - rhs.y};
     }
 }
-impl<T> std::ops::Mul for vec2<T> where T: std::ops::Mul<Output = T> + Copy {
-    type Output = vec2<T>;
-    fn mul(self, rhs: Self) -> Self::Output {
-        return Self{x: self.x * rhs.x, y: self.y * rhs.y};
-    }
-}
-impl<T> std::ops::Div for vec2<T> where T: std::ops::Div<Output = T> + Copy {
-    type Output = vec2<T>;
-    fn div(self, rhs: Self) -> Self::Output {
-        return Self{x: self.x / rhs.x, y: self.y / rhs.y};
-    }
-}
+// impl<T> std::ops::Mul for vec2<T> where T: std::ops::Mul<Output = T> + Copy {
+//     type Output = vec2<T>;
+//     fn mul(self, rhs: Self) -> Self::Output {
+//         return Self{x: self.x * rhs.x, y: self.y * rhs.y};
+//     }
+// }
+// impl<T> std::ops::Div for vec2<T> where T: std::ops::Div<Output = T> + Copy {
+//     type Output = vec2<T>;
+//     fn div(self, rhs: Self) -> Self::Output {
+//         return Self{x: self.x / rhs.x, y: self.y / rhs.y};
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

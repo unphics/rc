@@ -20,8 +20,8 @@ fn main() {
             title.as_ptr(),
             400, // SDL_WINDOWPOS_CENTERED as i32,
             50, // SDL_WINDOWPOS_CENTERED as i32,
-            1600,
             1200,
+            900,
             SDL_WindowFlags_SDL_WINDOW_SHOWN as u32
         );
         if window.is_null() {
@@ -33,8 +33,8 @@ fn main() {
         println!("SDL window create succeed");
     }
     {
-        let width = 1600;
-        let height = 1200;
+        let width = 1200;
+        let height = 900;
         let mut img_buf: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(width, height);
         draw(&mut img_buf);
         img_buf.save("resource/new.bmp").unwrap();
@@ -117,7 +117,7 @@ fn draw(img: &mut ImgBuf) { // 填充像素
     let model = rc::model::new("resource/african_head.obj").unwrap();
     for i in 0..model.nfaces() {
         let face = model.face(i);
-        for j in 0..2 {
+        for j in 0..3 {
             let v0 = model.vert(face[j] as usize);
             let v1 = model.vert(face[(j + 1) % 3] as usize);
             let x0 = ((v0.x + 1f32) * (800 / 2) as f32) as i64;
