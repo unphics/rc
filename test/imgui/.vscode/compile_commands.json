@@ -1,0 +1,41 @@
+[
+{
+  "directory": "d:\\Project\\rc\\test\\imgui",
+  "arguments": ["D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\bin\\HostX64\\x64\\cl.exe", "/c", "/nologo", "/O2", "/Id:\\Lib\\VulkanSDK\\1.3.290.0\\Include", "/Id:\\Project\\rc\\lib\\sdl2\\include", "/Iimgui", "/Isrc", "/EHsc", "/DNDEBUG", "/Fobuild\\.objs\\imgui\\windows\\x64\\release\\imgui\\imgui.cpp.obj", "imgui\\imgui.cpp", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\cppwinrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\shared", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\ucrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\um", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\winrt", "-imsvc", "D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\include"],
+  "file": "imgui\\imgui.cpp"
+},
+{
+  "directory": "d:\\Project\\rc\\test\\imgui",
+  "arguments": ["D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\bin\\HostX64\\x64\\cl.exe", "/c", "/nologo", "/O2", "/Id:\\Lib\\VulkanSDK\\1.3.290.0\\Include", "/Id:\\Project\\rc\\lib\\sdl2\\include", "/Iimgui", "/Isrc", "/EHsc", "/DNDEBUG", "/Fobuild\\.objs\\imgui\\windows\\x64\\release\\imgui\\imgui_demo.cpp.obj", "imgui\\imgui_demo.cpp", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\cppwinrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\shared", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\ucrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\um", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\winrt", "-imsvc", "D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\include"],
+  "file": "imgui\\imgui_demo.cpp"
+},
+{
+  "directory": "d:\\Project\\rc\\test\\imgui",
+  "arguments": ["D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\bin\\HostX64\\x64\\cl.exe", "/c", "/nologo", "/O2", "/Id:\\Lib\\VulkanSDK\\1.3.290.0\\Include", "/Id:\\Project\\rc\\lib\\sdl2\\include", "/Iimgui", "/Isrc", "/EHsc", "/DNDEBUG", "/Fobuild\\.objs\\imgui\\windows\\x64\\release\\imgui\\imgui_draw.cpp.obj", "imgui\\imgui_draw.cpp", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\cppwinrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\shared", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\ucrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\um", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\winrt", "-imsvc", "D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\include"],
+  "file": "imgui\\imgui_draw.cpp"
+},
+{
+  "directory": "d:\\Project\\rc\\test\\imgui",
+  "arguments": ["D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\bin\\HostX64\\x64\\cl.exe", "/c", "/nologo", "/O2", "/Id:\\Lib\\VulkanSDK\\1.3.290.0\\Include", "/Id:\\Project\\rc\\lib\\sdl2\\include", "/Iimgui", "/Isrc", "/EHsc", "/DNDEBUG", "/Fobuild\\.objs\\imgui\\windows\\x64\\release\\imgui\\imgui_tables.cpp.obj", "imgui\\imgui_tables.cpp", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\cppwinrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\shared", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\ucrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\um", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\winrt", "-imsvc", "D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\include"],
+  "file": "imgui\\imgui_tables.cpp"
+},
+{
+  "directory": "d:\\Project\\rc\\test\\imgui",
+  "arguments": ["D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\bin\\HostX64\\x64\\cl.exe", "/c", "/nologo", "/O2", "/Id:\\Lib\\VulkanSDK\\1.3.290.0\\Include", "/Id:\\Project\\rc\\lib\\sdl2\\include", "/Iimgui", "/Isrc", "/EHsc", "/DNDEBUG", "/Fobuild\\.objs\\imgui\\windows\\x64\\release\\imgui\\imgui_widgets.cpp.obj", "imgui\\imgui_widgets.cpp", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\cppwinrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\shared", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\ucrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\um", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\winrt", "-imsvc", "D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\include"],
+  "file": "imgui\\imgui_widgets.cpp"
+},
+{
+  "directory": "d:\\Project\\rc\\test\\imgui",
+  "arguments": ["D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\bin\\HostX64\\x64\\cl.exe", "/c", "/nologo", "/O2", "/Id:\\Lib\\VulkanSDK\\1.3.290.0\\Include", "/Id:\\Project\\rc\\lib\\sdl2\\include", "/Iimgui", "/Isrc", "/EHsc", "/DNDEBUG", "/Fobuild\\.objs\\imgui\\windows\\x64\\release\\src\\imgui_impl_sdl2.cpp.obj", "src\\imgui_impl_sdl2.cpp", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\cppwinrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\shared", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\ucrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\um", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\winrt", "-imsvc", "D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\include"],
+  "file": "src\\imgui_impl_sdl2.cpp"
+},
+{
+  "directory": "d:\\Project\\rc\\test\\imgui",
+  "arguments": ["D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\bin\\HostX64\\x64\\cl.exe", "/c", "/nologo", "/O2", "/Id:\\Lib\\VulkanSDK\\1.3.290.0\\Include", "/Id:\\Project\\rc\\lib\\sdl2\\include", "/Iimgui", "/Isrc", "/EHsc", "/DNDEBUG", "/Fobuild\\.objs\\imgui\\windows\\x64\\release\\src\\imgui_impl_vulkan.cpp.obj", "src\\imgui_impl_vulkan.cpp", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\cppwinrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\shared", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\ucrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\um", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\winrt", "-imsvc", "D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\include"],
+  "file": "src\\imgui_impl_vulkan.cpp"
+},
+{
+  "directory": "d:\\Project\\rc\\test\\imgui",
+  "arguments": ["D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\bin\\HostX64\\x64\\cl.exe", "/c", "/nologo", "/O2", "/Id:\\Lib\\VulkanSDK\\1.3.290.0\\Include", "/Id:\\Project\\rc\\lib\\sdl2\\include", "/Iimgui", "/Isrc", "/EHsc", "/DNDEBUG", "/Fobuild\\.objs\\imgui\\windows\\x64\\release\\src\\main.cpp.obj", "src\\main.cpp", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\cppwinrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\shared", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\ucrt", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\um", "-imsvc", "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.22621.0\\winrt", "-imsvc", "D:\\VisualStudio\\2022\\VC\\Tools\\MSVC\\14.37.32822\\include"],
+  "file": "src\\main.cpp"
+}]
