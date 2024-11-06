@@ -5,6 +5,6 @@
     "vulkan_extern_path": "C:/Users/zys15/zys/Scoop/apps/vulkan/current/Include/vulkan/",
     "vulkan_include_path": "C:/Users/zys15/zys/Scoop/apps/vulkan/current/Include/",
     "vulkan_lib_path": "C:/Users/zys15/zys/Scoop/apps/vulkan/current/Lib/",
-    "imgui_include_path": "./imgui/include",
-    "imgui_lib_path": "./imgui/build/windows/x64/release"
+    "imgui_include_path": "./lib/imgui/include",
+    "imgui_lib_path": "./lib/imgui/build/windows/x64/release"
 }
