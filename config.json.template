@@ -1,7 +1,7 @@
 {
     "libclang_path": "C:/Users/zys15/zys/Scoop/apps/llvm/current/lib/",
-    "sdl2_include_path": "./sdl2/include",
-    "sdl2_lib_path": "./sdl2/build/Release",
+    "sdl2_include_path": "./lib/sdl2/include",
+    "sdl2_lib_path": "./lib/sdl2/build/Release",
     "vulkan_extern_path": "C:/Users/zys15/zys/Scoop/apps/vulkan/current/Include/vulkan/",
     "vulkan_include_path": "C:/Users/zys15/zys/Scoop/apps/vulkan/current/Include/",
     "vulkan_lib_path": "C:/Users/zys15/zys/Scoop/apps/vulkan/current/Lib/",
