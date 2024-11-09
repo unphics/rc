@@ -3,6 +3,7 @@ name = "rc"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"  # 告诉 Cargo 使用 `build.rs`
+crate-type = ["staticlib"]
 
 [build-dependencies]
 bindgen = "0.70"   # 绑定生成工具的依赖
