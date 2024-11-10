@@ -37,7 +37,7 @@ impl queue_family_indices {
 struct swap_chain_support_details {
     capabilities: vk::VkSurfaceCapabilitiesKHR,
     formats: Vec<vk::VkSurfaceFormatKHR>,
-    preset_modes: Vec<vk::VkPresentModeKHR>,
+    present_modes: Vec<vk::VkPresentModeKHR>,
 }
 
 struct app {
@@ -174,13 +174,13 @@ impl app {
             extensions.push(VK_KHR_SURFACE_EXTENSION_NAME.as_ptr() as *const c_char);
             extensions.push(VK_EXT_DEBUG_REPORT_EXTENSION_NAME.as_ptr() as *const c_char);
             extensions.push(VK_EXT_DEBUG_UTILS_EXTENSION_NAME.as_ptr() as *const c_char); // **
-            extensions.push(VK_KHR_DISPLAY_EXTENSION_NAME.as_ptr() as *const c_char);
+            // extensions.push(VK_KHR_DISPLAY_EXTENSION_NAME.as_ptr() as *const c_char);
             extensions.push(VK_KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME.as_ptr() as *const c_char);
             extensions.push(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME.as_ptr() as *const c_char);
             extensions.push(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME.as_ptr() as *const c_char);
-            extensions.push(VK_KHR_GET_DISPLAY_PROPERTIES_2_EXTENSION_NAME.as_ptr() as *const c_char);
+            // extensions.push(VK_KHR_GET_DISPLAY_PROPERTIES_2_EXTENSION_NAME.as_ptr() as *const c_char);
             // extensions.push(VK_KHR_SURFACE_PROTECTED_CAPABILITIES_EXTENSION_NAME.as_ptr() as *const c_char);
-            extensions.push(VK_EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME.as_ptr() as *const c_char);
+            // extensions.push(VK_EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME.as_ptr() as *const c_char);
             extensions.push(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME.as_ptr() as *const c_char);
             extensions.push(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME.as_ptr() as *const c_char);
             extensions.push(VK_NV_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME.as_ptr() as *const c_char);
@@ -287,14 +287,29 @@ impl app {
     fn is_device_suitable(&self, device: &vk::VkPhysicalDevice) -> bool {
         let indices = self.find_queue_families(device);
         let extensions_supported = self.check_device_extension_support(device);
-        let swap_chain_adequate = false;
+        let mut swap_chain_adequate = false;
         if extensions_supported {
-            let swap_chain_support = 
+            let swap_chain_support = self.query_swap_chain_support(device);
+            swap_chain_adequate = !swap_chain_support.formats.is_empty() && !swap_chain_support.present_modes.is_empty();
         }
-        return indices.is_complete();
+        return indices.is_complete() && extensions_supported && swap_chain_adequate;
     }
-    fn query_swap_chain_support(&self, device: vk::VkPhysicalDevice) {
-        
+    fn query_swap_chain_support(&self, device: &vk::VkPhysicalDevice) -> swap_chain_support_details {
+        let mut details: swap_chain_support_details = unsafe {MaybeUninit::zeroed().assume_init()};
+        unsafe{vk::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*device, self.surface, &mut details.capabilities)};
+        let mut format_count: u32 = 0;
+        unsafe{vk::vkGetPhysicalDeviceSurfaceFormatsKHR(*device, self.surface, &mut format_count, std::ptr::null_mut())};
+        if format_count != 0 {
+            unsafe{details.formats.set_len(format_count as usize)};
+            unsafe{vk::vkGetPhysicalDeviceSurfaceFormatsKHR(*device, self.surface, &mut format_count, details.formats.as_mut_ptr())};
+        }
+        let mut present_mode_count: u32 = 0;
+        unsafe{vk::vkGetPhysicalDeviceSurfacePresentModesKHR(*device, self.surface, &mut present_mode_count, std::ptr::null_mut())};
+        if present_mode_count != 0 {
+            unsafe{details.present_modes.set_len(present_mode_count as usize);}
+            unsafe{vk::vkGetPhysicalDeviceSurfacePresentModesKHR(*device, self.surface, &mut present_mode_count, details.present_modes.as_mut_ptr())};
+        }
+        return details;
     }
     fn check_device_extension_support(&self, device: &vk::VkPhysicalDevice) -> bool {
         let mut extension_count = 0;
@@ -398,7 +413,60 @@ impl app {
         }
     }
     fn craete_swap_chain(&mut self) {
-
+        let swap_chain_support = self.query_swap_chain_support(&self.physical_device);
+        let surface_format: &vk::VkSurfaceFormatKHR = self.choose_swap_surface_format(&swap_chain_support.formats);
+        let present_mode: &vk::VkPresentModeKHR = self.choose_swap_present_mode(&swap_chain_support.present_modes);
+        let extent = self.choose_swap_extent(&swap_chain_support.capabilities);
+        let mut image_count = swap_chain_support.capabilities.maxImageCount + 1;
+        if swap_chain_support.capabilities.maxImageCount > 0 && image_count > swap_chain_support.capabilities.maxImageCount {
+            image_count = swap_chain_support.capabilities.maxImageCount;
+        }
+        let mut create_info: vk::VkSwapchainCreateInfoKHR = unsafe {MaybeUninit::zeroed().assume_init()};
+        create_info.sType = vk::VkStructureType_VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        create_info.surface = self.surface;
+        create_info.minImageCount = image_count;
+        create_info.imageColorSpace = surface_format.colorSpace;
+        create_info.imageExtent = extent;
+        create_info.imageArrayLayers = 1;
+        create_info.imageUsage = vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT as u32;
+        let indices: queue_family_indices = self.find_queue_families(&self.physical_device);
+        let mut queue_family_indices = vec![indices.graphics_family.unwrap(), indices.preset_family.unwrap()];
+        if indices.graphics_family != indices.preset_family {
+            create_info.imageSharingMode = vk::VkSharingMode_VK_SHARING_MODE_CONCURRENT;
+            create_info.queueFamilyIndexCount = 2;
+            create_info.pQueueFamilyIndices = queue_family_indices.as_mut_ptr();
+        } else {
+            create_info.imageSharingMode = vk::VkSharingMode_VK_SHARING_MODE_EXCLUSIVE;
+        }
+    }
+    fn choose_swap_extent(&self, capabilities: &VkSurfaceCapabilitiesKHR) -> vk::VkExtent2D {
+        if capabilities.currentExtent.width != u32::MAX {
+            return capabilities.currentExtent;
+        } else {
+            let mut width = 0;
+            let mut height = 0;
+            unsafe{SDL_Vulkan_GetDrawableSize(self.window, &mut width, &mut height)};
+            let mut actual_extent = unsafe{vk::VkExtent2D{width: width as u32, height: height as u32}};
+            actual_extent.width = rc::clamp(actual_extent.width.clone(), capabilities.minImageExtent.width.clone(), capabilities.maxImageExtent.width.clone());
+            actual_extent.height = rc::clamp(actual_extent.height.clone(), capabilities.minImageExtent.height.clone(), capabilities.maxImageExtent.height.clone());
+            return actual_extent;
+        }
+    }
+    fn choose_swap_surface_format<'a>(&self, available_formats: &'a [vk::VkSurfaceFormatKHR]) -> &'a vk::VkSurfaceFormatKHR {
+        for available_format in available_formats {
+            if available_format.format == VkFormat_VK_FORMAT_B8G8R8A8_SRGB && available_format.colorSpace == VkColorSpaceKHR_VK_COLOR_SPACE_SRGB_NONLINEAR_KHR {
+                return available_format;
+            }
+        }
+        return &available_formats[0];
+    }
+    fn choose_swap_present_mode<'a>(&mut self, available_present_modes: &'a Vec<vk::VkPresentModeKHR>) -> & 'a vk::VkPresentModeKHR {
+        for available_present_mode in available_present_modes {
+            if *available_present_mode == VkPresentModeKHR_VK_PRESENT_MODE_MAILBOX_KHR {
+                return available_present_mode;
+            }
+        }
+        return &vk::VkPresentModeKHR_VK_PRESENT_MODE_FIFO_KHR;
     }
 }
 
