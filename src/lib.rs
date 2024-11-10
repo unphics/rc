@@ -25,3 +25,4 @@ pub use math::vec2i;
 pub use math::vec3f;
 pub use math::vec3i;
 pub use obj::model;
+pub use ash;

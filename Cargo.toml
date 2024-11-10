@@ -15,6 +15,7 @@ shut_up = "0.1.1"
 proc_macro_rc = {path = "./lib/proc_macro_rc"}
 libloading = "0.7" # 动态加载库的依赖
 image = "0.24" # 构建bmp文件
+ash = {version = "0.37"}
 
 [profile.dev]
 debug = true

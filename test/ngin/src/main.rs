@@ -9,18 +9,50 @@ use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::mem::MaybeUninit;
 use rc::vk::vk_bindings as vk;
-
-use ash::extensions::ext::DebugUtils;
+use std::option::Option;
+use std::collections::HashSet;
 
 const Width: i32 = 800;
 const Height: i32 = 600;
 const validation_layers: [&str; 1] = ["VK_LAYER_KHRONOS_validation"];
 const enable_validation_layers: bool = true;
+const device_extensions: [*const i8; 1] = [vk::VK_KHR_SWAPCHAIN_EXTENSION_NAME.as_ptr() as *const c_char];
+
+struct queue_family_indices {
+    pub graphics_family: Option<u32>,
+    pub preset_family: Option<u32>,
+}
+impl queue_family_indices {
+    pub fn new() -> Self {
+        return Self {
+            graphics_family: None,
+            preset_family: None,
+        }
+    }
+    pub fn is_complete(&self) -> bool {
+        return self.graphics_family.is_some() && self.preset_family.is_some();
+    }
+}
+
+struct swap_chain_support_details {
+    capabilities: vk::VkSurfaceCapabilitiesKHR,
+    formats: Vec<vk::VkSurfaceFormatKHR>,
+    preset_modes: Vec<vk::VkPresentModeKHR>,
+}
 
 struct app {
     window: *mut SDL_Window,
     instance: vk::VkInstance,
     debug_messenger: vk::VkDebugUtilsMessengerEXT,
+    physical_device: vk::VkPhysicalDevice,
+    device: vk::VkDevice,
+    graphics_queue: vk::VkQueue,
+    surface: vk::VkSurfaceKHR,
+    preset_queue: vk::VkQueue,
+    swap_chain: vk::VkSwapchainKHR,
+    swap_chain_images: Vec<vk::VkImage>,
+    swap_chain_image_format: vk::VkFormat,
+    swap_chain_extent: vk::VkExtent2D,
 }
 impl app {
     pub fn new() -> Self {
@@ -28,6 +60,15 @@ impl app {
             window: std::ptr::null_mut(),
             instance: std::ptr::null_mut(),
             debug_messenger: std::ptr::null_mut(),
+            physical_device: std::ptr::null_mut(),
+            device: std::ptr::null_mut(),
+            graphics_queue: std::ptr::null_mut(),
+            surface: std::ptr::null_mut(),
+            preset_queue: std::ptr::null_mut(),
+            swap_chain: std::ptr::null_mut(),
+            swap_chain_images: Vec::new(),
+            swap_chain_image_format: 0,
+            swap_chain_extent: unsafe {MaybeUninit::zeroed().assume_init()},
         }
     }
     pub fn run(&mut self) {
@@ -52,16 +93,24 @@ impl app {
     }
     fn init_vulkan(&mut self) {
         self.create_instance();
-        self.setup_debug_messenger();
+        self.setup_debug_messenger();   
+        self.create_suface();
+        self.pick_physical_device();
+        self.create_logical_device();
+        self.craete_swap_chain();
     }
     fn main_loop(&self) {
         std::thread::sleep(std::time::Duration::from_secs(4));
     }
-    fn clean_up(&self) {
+    fn clean_up(&mut self) {
+        println!("\n----- clean_up -----");
         unsafe {
+            vk::vkDestroySwapchainKHR(self.device, self.swap_chain, std::ptr::null_mut());
+            vk::vkDestroyDevice(self.device, std::ptr::null_mut());
             if enable_validation_layers {
-                // vk::vkDestroyDebugUtilsMessengerEXT(self.instance, self.debug_messenger, std::ptr::null());
+                self.destroy_debug_utils_messenger_ext();
             }
+            vk::vkDestroySurfaceKHR(self.instance, self.surface, std::ptr::null_mut());
             rc::vk::vk_bindings::vkDestroyInstance(self.instance, std::ptr::null());
             SDL_DestroyWindow(self.window);
             SDL_Quit();
@@ -75,10 +124,10 @@ impl app {
         let mut app_info: vk::VkApplicationInfo = unsafe {MaybeUninit::zeroed().assume_init()};
         app_info.sType = vk::VkStructureType_VK_STRUCTURE_TYPE_APPLICATION_INFO;
         app_info.pApplicationName = "SDL Vulkan App".as_ptr() as *const c_char;
-        app_info.applicationVersion = vk::VK_VERSION_1_0;
+        app_info.applicationVersion = 4194304;
         app_info.pEngineName = "No Engine".as_ptr() as *const c_char;
-        app_info.engineVersion = vk::VK_VERSION_1_0;
-        app_info.apiVersion = vk::VK_VERSION_1_0;
+        app_info.engineVersion = 4194304;
+        app_info.apiVersion = 4194304;
 
         let mut create_info: vk::VkInstanceCreateInfo = unsafe {MaybeUninit::zeroed().assume_init()};
         create_info.sType = vk::VkStructureType_VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -97,14 +146,63 @@ impl app {
             create_info.enabledLayerCount = 0;
             create_info.pNext = std::ptr::null();
         }
-
         if unsafe {vk::vkCreateInstance(&create_info, std::ptr::null(), &mut self.instance)} != vk::VkResult_VK_SUCCESS {
             panic!("vkCreateInstance failed");
         }
+        println!("create_info.enabledExtensionCount {}", create_info.enabledExtensionCount);
     }
     fn get_required_extensions(&self) -> Vec<*const c_char> {
+        // let mut extension_count = 0;
+        // if unsafe{SDL_Vulkan_GetInstanceExtensions(self.window, &mut extension_count, std::ptr::null_mut())} != SDL_bool_SDL_TRUE {
+        //     println!("failed to get extension count: {:?}", rc::sdl2::get_err());
+        // }
+        // let mut extensions: Vec<*const i8> = Vec::with_capacity(extension_count as usize);
+        // unsafe{extensions.set_len(extension_count as usize);}
+        // if unsafe{SDL_Vulkan_GetInstanceExtensions(self.window, &mut extension_count, extensions.as_mut_ptr())} != SDL_bool_SDL_TRUE {
+        //     println!("failed to get vulkan instance extension_names: {:?}", rc::sdl2::get_err());
+        // }
+        // for &ext in &extensions {
+        //     let c_str = unsafe { CStr::from_ptr(ext as *const c_char) };
+        //     println!("看看你都用了啥{}", c_str.to_str().unwrap());
+        // }
+
         let mut extensions: Vec<*const c_char> = Vec::new();
-        extensions.push(VK_EXT_DEBUG_UTILS_EXTENSION_NAME.as_ptr() as *const c_char);
+        {
+            extensions.push(VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_KHR_SURFACE_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_EXT_DEBUG_REPORT_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_EXT_DEBUG_UTILS_EXTENSION_NAME.as_ptr() as *const c_char); // **
+            extensions.push(VK_KHR_DISPLAY_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_KHR_GET_DISPLAY_PROPERTIES_2_EXTENSION_NAME.as_ptr() as *const c_char);
+            // extensions.push(VK_KHR_SURFACE_PROTECTED_CAPABILITIES_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_NV_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(VK_LUNARG_DIRECT_DRIVER_LOADING_EXTENSION_NAME.as_ptr() as *const c_char);
+            extensions.push(b"VK_KHR_win32_surface\0".as_ptr() as *const c_char);
+        }
+
+        {
+            // let mut properties_count: u32 = 0;
+            // unsafe{vkEnumerateInstanceExtensionProperties(std::ptr::null_mut(), &mut properties_count, std::ptr::null_mut());}            
+            // println!("支持的扩展{}", properties_count);
+            // let mut properties: Vec<VkExtensionProperties> = Vec::with_capacity(properties_count as usize);
+            // unsafe{properties.set_len(properties_count as usize);}
+            // let err = unsafe{vkEnumerateInstanceExtensionProperties(std::ptr::null_mut(), &mut properties_count, properties.as_mut_ptr())};
+            // check_vk_result(err);
+            // for prop in properties {
+            //     let byte_slice: &[u8] = &prop.extensionName.iter().map(|&b| b as u8).collect::<Vec<u8>>();
+            //     println!("扩展名{}", unsafe{CStr::from_bytes_with_nul_unchecked(byte_slice).to_str().unwrap()});
+            //     extensions.push(unsafe{CStr::from_bytes_with_nul_unchecked(byte_slice).to_str().unwrap().as_bytes().as_ptr() as *const i8});
+            // }
+        }
         return extensions;
     }
     fn populate_debug_messenger_create_info(&mut self, create_info: &mut vk::VkDebugUtilsMessengerCreateInfoEXT) {
@@ -128,19 +226,20 @@ impl app {
         // }
     }
     fn create_debug_utils_messenger_ext(&mut self, create_info: &vk::VkDebugUtilsMessengerCreateInfoEXT) {
-        let func: vk::PFN_vkVoidFunction = unsafe{vk::vkGetInstanceProcAddr(self.instance, "vkCreateDebugUtilsMessengerEXT".as_ptr() as *const c_char)};
-        unsafe {
-            println!("111");
-            std::thread::sleep(std::time::Duration::from_secs(1));
-            let p: *mut std::ffi::c_void = std::mem::transmute(func);
-            std::thread::sleep(std::time::Duration::from_secs(1));
-            println!("222{:p}", p);
-        }
-        let f: vk::PFN_vkCreateDebugUtilsMessengerEXT = unsafe{std::mem::transmute(func)};
-        if let Some(foo) = f {
+        //todo notice 这里很重要
+        let fn_name = CStr::from_bytes_with_nul(b"vkCreateDebugUtilsMessengerEXT\0").unwrap();
+        let func: vk::PFN_vkCreateDebugUtilsMessengerEXT = unsafe{std::mem::transmute(vk::vkGetInstanceProcAddr(self.instance, fn_name.as_ptr() as *const c_char))};
+        if let Some(foo) = func {
             unsafe{foo(self.instance, create_info, std::ptr::null(), &mut self.debug_messenger)};
         } else {
             panic!("vkCreateDebugUtilsMessengerEXT not found");
+        }
+    }
+    fn destroy_debug_utils_messenger_ext(&mut self) {
+        let fn_name = CStr::from_bytes_with_nul(b"vkDestroyDebugUtilsMessengerEXT\0").unwrap();
+        let func: vk::PFN_vkDestroyDebugUtilsMessengerEXT = unsafe{std::mem::transmute(vk::vkGetInstanceProcAddr(self.instance, fn_name.as_ptr() as *const c_char))};
+        if let Some(foo) = func {
+            unsafe{foo(self.instance, self.debug_messenger, std::ptr::null());}
         }
     }
     fn check_validation_layer_support(&self) -> bool {
@@ -165,6 +264,142 @@ impl app {
         }
         return true;
     }
+    fn pick_physical_device(&mut self) {
+        println!("\n----- pick_physical_device -----");
+        let mut device_count: u32 = 0;
+        unsafe{vkEnumeratePhysicalDevices(self.instance, &mut device_count, std::ptr::null_mut())};
+        if device_count == 0 {
+            panic!("failed to find gpus with vulkan support!");
+        }
+        let mut devices: Vec<VkPhysicalDevice> = Vec::with_capacity(device_count as usize);
+        unsafe {devices.set_len(device_count as usize);}
+        unsafe{vkEnumeratePhysicalDevices(self.instance, &mut device_count, devices.as_mut_ptr())};
+        for device in &devices {
+            if self.is_device_suitable(device) {
+                self.physical_device = *device;
+                break;
+            }
+        }
+        if self.physical_device.is_null() {
+            panic!("failed to find a suitable gpu!");
+        }
+    }
+    fn is_device_suitable(&self, device: &vk::VkPhysicalDevice) -> bool {
+        let indices = self.find_queue_families(device);
+        let extensions_supported = self.check_device_extension_support(device);
+        let swap_chain_adequate = false;
+        if extensions_supported {
+            let swap_chain_support = 
+        }
+        return indices.is_complete();
+    }
+    fn query_swap_chain_support(&self, device: vk::VkPhysicalDevice) {
+        
+    }
+    fn check_device_extension_support(&self, device: &vk::VkPhysicalDevice) -> bool {
+        let mut extension_count = 0;
+        unsafe{vk::vkEnumerateDeviceExtensionProperties(*device, std::ptr::null_mut(), &mut extension_count, std::ptr::null_mut())};
+        let mut available_extensions: Vec<VkExtensionProperties> = Vec::with_capacity(extension_count as usize);
+        unsafe{available_extensions.set_len(extension_count as usize);}
+        unsafe{vk::vkEnumerateDeviceExtensionProperties(*device, std::ptr::null_mut(), &mut extension_count, available_extensions.as_mut_ptr())};
+        let mut available_extensions_set = HashSet::new();
+        for extension in available_extensions {
+            let ext_name = unsafe {
+                CStr::from_ptr(extension.extensionName.as_ptr())
+                    .to_string_lossy()
+                    .into_owned()
+            };
+            available_extensions_set.insert(ext_name);
+        }
+        for ext in device_extensions {
+            let ext_name = unsafe { CStr::from_ptr(ext).to_string_lossy().into_owned() };
+            println!("比较一下{}",ext_name);
+            if !available_extensions_set.contains(&ext_name) {
+                return false;
+            }
+        }
+        return true;
+    }
+    fn find_queue_families(&self, device: &vk::VkPhysicalDevice) -> queue_family_indices {
+        let mut indices = queue_family_indices::new();
+        let mut queue_family_count: u32 = 0;
+        unsafe{vk::vkGetPhysicalDeviceQueueFamilyProperties(*device, &mut queue_family_count, std::ptr::null_mut())}
+        let mut queue_families: Vec<VkQueueFamilyProperties> = Vec::with_capacity(queue_family_count as usize);
+        unsafe{queue_families.set_len(queue_family_count as usize);}
+        let mut i: u32 = 0;
+        for queue_family in queue_families {
+            if queue_family.queueFlags & VkQueueFlagBits_VK_QUEUE_GRAPHICS_BIT as u32 != 0 {
+                indices.graphics_family = Some(i);
+            }
+            let mut preset_support: vk::VkBool32 = false as u32;
+            let _ = unsafe{vk::vkGetPhysicalDeviceSurfaceSupportKHR(*device, i as u32, self.surface, &mut preset_support)};
+            if preset_support != 0 {
+                indices.preset_family = Some(i);
+            }
+            if indices.is_complete() {
+                break;
+            }
+            i += 1;
+        }
+        return indices;
+    }
+    fn create_logical_device(&mut self) {
+        println!("\n----- create_logical_device -----");
+        let indices = self.find_queue_families(&self.physical_device);
+        let mut queue_create_infos = Vec::new();
+        let mut unique_queue_families = HashSet::new();
+        unique_queue_families.insert(indices.graphics_family);
+        unique_queue_families.insert(indices.preset_family);
+        let queue_priority = 1.0f32;
+
+        for queue_families in unique_queue_families {
+            let mut queue_create_info: vk::VkDeviceQueueCreateInfo = unsafe {MaybeUninit::zeroed().assume_init()};
+            queue_create_info.sType = vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queue_create_info.queueCount = 1;
+            queue_create_info.pQueuePriorities = &queue_priority;
+            println!("崩在这儿没问题");
+            queue_create_info.queueFamilyIndex = queue_families.unwrap();
+            queue_create_infos.push(queue_create_info);
+        }
+
+        let mut device_feature: vk::VkPhysicalDeviceFeatures = unsafe {MaybeUninit::zeroed().assume_init()};
+        let mut create_info: vk::VkDeviceCreateInfo = unsafe {MaybeUninit::zeroed().assume_init()};
+        create_info.sType = vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        create_info.queueCreateInfoCount = queue_create_infos.len() as u32;
+        create_info.pQueueCreateInfos = queue_create_infos.as_mut_ptr();
+        create_info.pEnabledFeatures = &device_feature;
+        let mut extensions = Vec::new();
+        extensions.push(VK_KHR_SWAPCHAIN_EXTENSION_NAME.as_ptr() as *const c_char);
+        create_info.enabledExtensionCount = extensions.len() as u32;
+        create_info.ppEnabledExtensionNames = extensions.as_mut_ptr();
+        if enable_validation_layers {
+            create_info.enabledLayerCount = validation_layers.len() as u32;
+            create_info.ppEnabledLayerNames = validation_layers.as_ptr() as *const *const c_char;
+        } else {
+            create_info.enabledLayerCount = 0;
+        }
+        if unsafe{vk::vkCreateDevice(self.physical_device, &create_info, std::ptr::null_mut(), &mut self.device)} != vk::VkResult_VK_SUCCESS {
+            panic!("failed to create logical device!");
+        }
+        if let Some(value) = indices.graphics_family {
+            unsafe{vk::vkGetDeviceQueue(self.device, value, 0, &mut self.graphics_queue);}
+        }
+        if let Some(value) = indices.preset_family {
+            unsafe{vk::vkGetDeviceQueue(self.device, value, 0, &mut self.preset_queue);}
+        }
+    }
+    fn create_suface(&mut self) {
+        println!("\n----- create_suface -----");
+        if unsafe{SDL_Vulkan_CreateSurface(self.window, self.instance as *mut rc::sdl2::VkInstance_T, &mut self.surface as *mut _ as *mut *mut rc::sdl2::VkSurfaceKHR_T)} != SDL_bool_SDL_TRUE {
+            panic!("failed to create vulkan surface!");
+        }
+        if self.surface.is_null() {
+            panic!("failed to create vulkan surface 2!");
+        }
+    }
+    fn craete_swap_chain(&mut self) {
+
+    }
 }
 
 fn main() {
@@ -182,6 +417,17 @@ unsafe extern "C" fn debug_callback(message_severity: vk::VkDebugUtilsMessageSev
             CStr::from_ptr(c_msg).to_string_lossy().into_owned()
         }
     };
-    println!("Debug callback: {}", message);
+    println!("***ValidationLayer: {}", message);
     vk::VK_FALSE
+}
+
+
+fn check_vk_result(err: VkResult) {
+    if err == 0 {
+        return
+    };
+    eprintln!("Error: VkResult = {}", err);
+    if err < 0 {
+        std::process::exit(123);
+    }
 }

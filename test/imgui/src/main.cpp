@@ -104,6 +104,27 @@ static VkPhysicalDevice SetupVulkan_SelectPhysicalDevice()
     return VK_NULL_HANDLE;
 }
 
+#include <vector>
+#include <iostream>
+const std::vector<const char*> validationLayers = {
+    "VK_LAYER_KHRONOS_validation"
+};
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData) {
+    std::cerr << "***ValidationLayer: " << pCallbackData->pMessage << std::endl;
+    return VK_FALSE;
+}
+void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+    createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = debugCallback;
+}
+
 static void SetupVulkan(ImVector<const char*> instance_extensions)
 {
     VkResult err;
@@ -146,8 +167,24 @@ static void SetupVulkan(ImVector<const char*> instance_extensions)
         // Create Vulkan Instance
         create_info.enabledExtensionCount = (uint32_t)instance_extensions.Size;
         create_info.ppEnabledExtensionNames = instance_extensions.Data;
+        
+
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+        create_info.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        create_info.ppEnabledLayerNames = validationLayers.data();
+       populateDebugMessengerCreateInfo(debugCreateInfo);
+        create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+
+
         err = vkCreateInstance(&create_info, g_Allocator, &g_Instance);
         check_vk_result(err);
+
+        auto a = VK_MAKE_VERSION(1, 0, 0);
+        auto b = VK_API_VERSION_1_0;
+        auto f1 = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(g_Instance, "vkCreateDebugUtilsMessengerEXT");
+        std::cout << "watch you: " << a << std::endl;
+        std::cout << "watch you: " << b << std::endl;
+        std::cout << "watch you: " << f1 << std::endl;
 #ifdef IMGUI_IMPL_VULKAN_USE_VOLK
         volkLoadInstance(g_Instance);
 #endif
@@ -189,6 +226,7 @@ static void SetupVulkan(ImVector<const char*> instance_extensions)
     {
         ImVector<const char*> device_extensions;
         device_extensions.push_back("VK_KHR_swapchain");
+        device_extensions.push_back("VK_EXT_debug_utils");
 
         // Enumerate physical device extension
         uint32_t properties_count;
