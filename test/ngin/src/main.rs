@@ -53,6 +53,7 @@ struct app {
     swap_chain_images: Vec<vk::VkImage>,
     swap_chain_image_format: vk::VkFormat,
     swap_chain_extent: vk::VkExtent2D,
+    swap_chain_image_views: Vec<vk::VkImageView>,
 }
 impl app {
     pub fn new() -> Self {
@@ -69,6 +70,7 @@ impl app {
             swap_chain_images: Vec::new(),
             swap_chain_image_format: 0,
             swap_chain_extent: unsafe {MaybeUninit::zeroed().assume_init()},
+            swap_chain_image_views: Vec::new(),
         }
     }
     pub fn run(&mut self) {
@@ -98,6 +100,7 @@ impl app {
         self.pick_physical_device();
         self.create_logical_device();
         self.craete_swap_chain();
+        self.create_image_views();
     }
     fn main_loop(&self) {
         std::thread::sleep(std::time::Duration::from_secs(4));
@@ -105,6 +108,9 @@ impl app {
     fn clean_up(&mut self) {
         println!("\n----- clean_up -----");
         unsafe {
+            for image_view in &self.swap_chain_image_views {
+                vk::vkDestroyImageView(self.device, *image_view, std::ptr::null_mut());
+            }
             vk::vkDestroySwapchainKHR(self.device, self.swap_chain, std::ptr::null_mut());
             vk::vkDestroyDevice(self.device, std::ptr::null_mut());
             if enable_validation_layers {
@@ -300,12 +306,14 @@ impl app {
         let mut format_count: u32 = 0;
         unsafe{vk::vkGetPhysicalDeviceSurfaceFormatsKHR(*device, self.surface, &mut format_count, std::ptr::null_mut())};
         if format_count != 0 {
+            details.formats = Vec::with_capacity(format_count as usize);
             unsafe{details.formats.set_len(format_count as usize)};
             unsafe{vk::vkGetPhysicalDeviceSurfaceFormatsKHR(*device, self.surface, &mut format_count, details.formats.as_mut_ptr())};
         }
         let mut present_mode_count: u32 = 0;
         unsafe{vk::vkGetPhysicalDeviceSurfacePresentModesKHR(*device, self.surface, &mut present_mode_count, std::ptr::null_mut())};
         if present_mode_count != 0 {
+            details.present_modes = Vec::with_capacity(present_mode_count as usize);
             unsafe{details.present_modes.set_len(present_mode_count as usize);}
             unsafe{vk::vkGetPhysicalDeviceSurfacePresentModesKHR(*device, self.surface, &mut present_mode_count, details.present_modes.as_mut_ptr())};
         }
@@ -413,6 +421,7 @@ impl app {
         }
     }
     fn craete_swap_chain(&mut self) {
+        println!("\n----- craete_swap_chain -----");
         let swap_chain_support = self.query_swap_chain_support(&self.physical_device);
         let surface_format: &vk::VkSurfaceFormatKHR = self.choose_swap_surface_format(&swap_chain_support.formats);
         let present_mode: &vk::VkPresentModeKHR = self.choose_swap_present_mode(&swap_chain_support.present_modes);
@@ -425,6 +434,7 @@ impl app {
         create_info.sType = vk::VkStructureType_VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         create_info.surface = self.surface;
         create_info.minImageCount = image_count;
+        create_info.imageFormat = surface_format.format;
         create_info.imageColorSpace = surface_format.colorSpace;
         create_info.imageExtent = extent;
         create_info.imageArrayLayers = 1;
@@ -438,6 +448,20 @@ impl app {
         } else {
             create_info.imageSharingMode = vk::VkSharingMode_VK_SHARING_MODE_EXCLUSIVE;
         }
+        create_info.preTransform = swap_chain_support.capabilities.currentTransform;
+        create_info.compositeAlpha = vk::VkCompositeAlphaFlagBitsKHR_VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        create_info.presentMode = *present_mode;
+        create_info.clipped = vk::VK_TRUE;
+        create_info.oldSwapchain = std::ptr::null_mut();
+        if unsafe{vk::vkCreateSwapchainKHR(self.device, &mut create_info, std::ptr::null_mut(), &mut self.swap_chain)} != vk::VkResult_VK_SUCCESS {
+            panic!("failed to create swap chain!");
+        }
+        unsafe {vk::vkGetSwapchainImagesKHR(self.device, self.swap_chain, &mut image_count, std::ptr::null_mut());}
+        unsafe{self.swap_chain_images.set_len(image_count as usize)};
+        println!("qqq {}, {}", self.swap_chain_images.len(), image_count);
+        unsafe {vk::vkGetSwapchainImagesKHR(self.device, self.swap_chain, &mut image_count, self.swap_chain_images.as_mut_ptr());}
+        self.swap_chain_image_format = surface_format.format;
+        self.swap_chain_extent = extent;
     }
     fn choose_swap_extent(&self, capabilities: &VkSurfaceCapabilitiesKHR) -> vk::VkExtent2D {
         if capabilities.currentExtent.width != u32::MAX {
@@ -454,7 +478,7 @@ impl app {
     }
     fn choose_swap_surface_format<'a>(&self, available_formats: &'a [vk::VkSurfaceFormatKHR]) -> &'a vk::VkSurfaceFormatKHR {
         for available_format in available_formats {
-            if available_format.format == VkFormat_VK_FORMAT_B8G8R8A8_SRGB && available_format.colorSpace == VkColorSpaceKHR_VK_COLOR_SPACE_SRGB_NONLINEAR_KHR {
+            if available_format.format == vk::VkFormat_VK_FORMAT_B8G8R8A8_SRGB && available_format.colorSpace == vk::VkColorSpaceKHR_VK_COLOR_SPACE_SRGB_NONLINEAR_KHR {
                 return available_format;
             }
         }
@@ -468,9 +492,37 @@ impl app {
         }
         return &vk::VkPresentModeKHR_VK_PRESENT_MODE_FIFO_KHR;
     }
+    fn create_image_views(&mut self) {
+        println!("\n----- create_image_views -----");
+        unsafe{self.swap_chain_image_views.set_len(self.swap_chain_images.len());}
+        for i in 0 .. self.swap_chain_images.len() {
+            println!("111");
+            let mut create_info: vk::VkImageViewCreateInfo = unsafe{MaybeUninit::zeroed().assume_init()};
+            println!("222");
+            create_info.sType = vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            println!("333");
+            create_info.image = self.swap_chain_images[i];
+            println!("444");
+            create_info.viewType = vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_2D;
+            create_info.format = self.swap_chain_image_format;
+            create_info.components.r = vk::VkComponentSwizzle_VK_COMPONENT_SWIZZLE_IDENTITY;
+            create_info.components.g = vk::VkComponentSwizzle_VK_COMPONENT_SWIZZLE_IDENTITY;
+            create_info.components.b = vk::VkComponentSwizzle_VK_COMPONENT_SWIZZLE_IDENTITY;
+            create_info.components.a = vk::VkComponentSwizzle_VK_COMPONENT_SWIZZLE_IDENTITY;
+            create_info.subresourceRange.aspectMask = vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT as u32;
+            create_info.subresourceRange.baseMipLevel = 0;
+            create_info.subresourceRange.levelCount = 1;
+            create_info.subresourceRange.baseArrayLayer = 0;
+            create_info.subresourceRange.layerCount = 1;
+            if unsafe{vk::vkCreateImageView(self.device, &create_info, std::ptr::null_mut(), &mut self.swap_chain_image_views[i])} != vk::VkResult_VK_SUCCESS {
+                panic!("failed to create image views!");
+            }
+        }
+    }
 }
 
 fn main() {
+    std::env::set_var("RUST_BACKTRACE", "1");
     println!("Hello, world!");
     let mut app = app::new();
     app.run();
